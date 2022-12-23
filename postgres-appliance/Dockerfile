@@ -89,7 +89,7 @@ FROM scratch as builder-true
 COPY --from=builder-false / /
 
 
-FROM builder-false
+FROM builder-${COMPRESS}
 
 LABEL maintainer="Polina Bungina <polina.bungina@zalando.de>"
 

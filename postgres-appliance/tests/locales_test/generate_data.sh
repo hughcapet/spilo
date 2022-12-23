@@ -1,26 +1,11 @@
 #!/bin/bash
 
-readonly container=$1
-readonly tests_dir="/home/postgres/tests"
-readonly output_file=$2
+set -ex
 
 cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
 
-if ! docker info &> /dev/null; then
-    if podman info &> /dev/null; then
-        alias docker=podman
-        shopt -s expand_aliases
-    else
-        echo "docker/podman: command not found"
-        exit 1
-    fi
-fi
-
-
-function docker_exec() {
-    declare -r cmd=${*: -1:1}
-    docker exec "${@:1:$(($#-1))}" su postgres -c "$cmd"
-}
+readonly container=$1
+readonly output_file=$2
 
 
 function generate_data() {
@@ -42,5 +27,3 @@ generate_data
 
 # Write sorted data to an output file
 docker_exec "$container" "psql -c '\copy (select * from chars order by 1) to ${output_file}'"
-docker_exec "$container" "truncate -s -1 ${output_file}"
-docker exec "$container" cp ${output_file} ${tests_dir}
