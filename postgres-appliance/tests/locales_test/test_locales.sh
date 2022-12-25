@@ -7,11 +7,7 @@ source ../test_utils.sh
 TEST_CONTAINER_NAME='spilo-test'
 TEST_IMAGE=(
     'registry.opensource.zalan.do/acid/spilo-cdp-14'
-    'spilo'
-)
-EXTRA_ENV=(
-    '-e USE_OLD_LOCALES=false' # just to pass something, takes no effect for the old images
-    '-e USE_OLD_LOCALES=true'
+    'registry.opensource.zalan.do/acid/spilo-cdp-15'
 )
 
 function main() {
@@ -20,7 +16,7 @@ function main() {
         docker run --rm -d --privileged \
                 --name "$TEST_CONTAINER_NAME" \
                 -v "$PWD":/home/postgres/tests \
-                -e SPILO_PROVIDER=local "${EXTRA_ENV[$i]}" "${TEST_IMAGE[$i]}"
+                -e SPILO_PROVIDER=local -e USE_OLD_LOCALES=true "${TEST_IMAGE[$i]}" # for cdp-14 env USE_OLD_LOCALES takes no effect
         attempts=0
         while ! docker exec -i spilo-test su postgres -c "pg_isready"; do
             if [[ "$attempts" -ge 15 ]]; then
@@ -34,11 +30,8 @@ function main() {
         docker exec "$TEST_CONTAINER_NAME" mv "/home/postgres/output${i}.txt" "/home/postgres/tests"
     done
 
-    wc -m output0.txt
-    wc -m output1.txt
-    wc -c output0.txt
-    wc -c output1.txt
-    diff -u -w -B output0.txt output1.txt > /dev/null || (echo "Outputs are different!" && exit 1)
+    docker exec "$TEST_CONTAINER_NAME" ls /home/postgres/
+    diff -u output0.txt output1.txt > /dev/null || (echo "Outputs are different!" && exit 1)
 }
 
 
