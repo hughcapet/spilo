@@ -31,11 +31,11 @@ else
     apt-get install -y "${BUILD_PACKAGES[@]}" libcurl4
 
     # install pam_oauth2.so
-    git clone -b "$PAM_OAUTH2" --recurse-submodules https://github.com/zalando-pg/pam-oauth2.git
+    git clone -b "$PAM_OAUTH2_BRANCH" --recurse-submodules https://github.com/zalando-pg/pam-oauth2.git
     make -C pam-oauth2 install
 
     # prepare 3rd sources
-    git clone -b "$PLPROFILER" https://github.com/hughcapet/plprofiler.git
+    git clone -b "$PLPROFILER_BRANCH" https://github.com/hughcapet/plprofiler.git
     tar -xzf "plantuner-${PLANTUNER_COMMIT}.tar.gz"
     curl -sL "https://github.com/zalando-pg/pg_mon/archive/$PG_MON_COMMIT.tar.gz" | tar xz
 
@@ -56,8 +56,8 @@ curl -sL "https://github.com/zalando-pg/bg_mon/archive/$BG_MON_COMMIT.tar.gz" | 
 curl -sL "https://github.com/zalando-pg/pg_auth_mon/archive/$PG_AUTH_MON_COMMIT.tar.gz" | tar xz
 curl -sL "https://github.com/cybertec-postgresql/pg_permissions/archive/$PG_PERMISSIONS_COMMIT.tar.gz" | tar xz
 curl -sL "https://github.com/hughcapet/pg_tm_aux/archive/$PG_TM_AUX_COMMIT.tar.gz" | tar xz
-curl -sL "https://github.com/zubkov-andrei/pg_profile/archive/$PG_PROFILE.tar.gz" | tar xz
-git clone -b "$SET_USER" https://github.com/pgaudit/set_user.git
+curl -sL "https://github.com/zubkov-andrei/pg_profile/archive/$PG_PROFILE_TAG.tar.gz" | tar xz
+git clone -b "$SET_USER_BRANCH" https://github.com/pgaudit/set_user.git
 git clone https://github.com/timescale/timescaledb.git
 
 apt-get install -y \
@@ -180,7 +180,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
             set_user \
             pg_permissions-${PG_PERMISSIONS_COMMIT} \
             pg_tm_aux-${PG_TM_AUX_COMMIT} \
-            pg_profile-${PG_PROFILE} \
+            pg_profile-${PG_PROFILE_TAG} \
             "${EXTRA_EXTENSIONS[@]}"; do
         make -C "$n" USE_PGXS=1 clean install-strip
     done
@@ -289,7 +289,7 @@ if [ "$DEMO" != "true" ]; then
                     d2="$d1"
                     d1="../../${v1##*/}/$d1"
                     if [ "${d2%-*}" = "contrib/postgis" ]; then
-                        if [ "${v2##*/}" = "10" ]; then d2="${d2%-*}-$POSTGIS_LEGACY"; fi
+                        if [ "${v2##*/}" = "10" ]; then d2="${d2%-*}-$POSTGIS_LEGACY_VERSION"; fi
                         d1="../$d1"
                     fi
                     d2="$v2/$d2"

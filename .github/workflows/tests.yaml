@@ -12,14 +12,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up packages
-      run: sudo apt-get install -y shellcheck
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: 3.7
-    - name: Install flake8 and docker-compose
-      run: python -m pip install flake8 docker-compose==1.17.1
+    - name: Set up packages
+      run: |
+        sudo apt-get install curl -y shellcheck jq
+        python -m pip install flake8 docker-compose==1.17.1
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
     - name: Run shellcheck
       run: find postgres-appliance -name '*.sh' -print0 | xargs -0 shellcheck
     - name: Run flake8
@@ -31,3 +32,26 @@ jobs:
     - name: Test USE_OLD_LOCALES
       run: bash -x postgres-appliance/tests/locales_test/test_locales.sh
       if: github.event_name == 'push'
+    - name: Print packages info
+      shell: bash
+      run: |
+        syft packages spilo -o syft-json --file sbom.json
+
+        echo '###Postgresql server###'
+        jq '.artifacts[] | select(.name? | match("postgresql-1[0-9]$")) | with_entries(select([.key] | inside(["version", "name"]))) | [.name, .version] |join("    ")' sbom.json
+
+        PGVERSIONS="10 11 12 13 14 15"
+        for version in $PGVERSIONS; do
+          echo '\n'
+          echo "###Postgresql extensions (deb) - postgresql-${version}###"
+          jq '.artifacts[] | select(.name? | match("postgresql-'"$version"'-")) | with_entries(select([.key] | inside(["version", "name"]))) | [.name, .version] |join("    ")' sbom.json
+        done
+
+        echo '\n'
+        echo '###Extensions built from source###'
+        docker image inspect spilo | jq '.[].Config.Env[]' | grep -E '_VERSION|_BRANCH|_TAG|_COMMIT' | grep -vE 'PAM_OAUTH2|PATRONI|WALE'
+
+        echo '\n'
+        echo '###3rd patry components###'
+        docker image inspect spilo | jq '.[].Config.Env[]' | grep -E 'PAM_OAUTH2|PATRONI|WALE'
+        jq --argjson whitelist '["patroni", ""]' '.artifacts[] | with_entries(select([.key] | inside(["version", "name"]))) | select(any(.name == $whitelist[]; .)) | [.name, .version] |join("    ")' sbom.json
